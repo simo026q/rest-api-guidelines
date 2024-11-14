@@ -126,17 +126,17 @@ Read more on [Microsoft's API guidelines](https://github.com/microsoft/api-guide
 
 The default behavior should depend on the resource and should be documented.
 
-### JSON Response format
+### JSON pagination response format
 
 #### Structure
 
 ```json
 {
   "data": [],
-  "pagination": {
+  "metadata": {
     "page": 2,
     "pageSize": 10,
-    "totalItems": 100,
+    "totalCount": 100,
     "totalPages": 10
   },
   "links": {
@@ -152,10 +152,10 @@ The default behavior should depend on the resource and should be documented.
 #### Fields
 
 - `data`: Array of resources
-- `pagination`: Pagination metadata
+- `metadata`: Pagination metadata
   - `page`: Current page number
   - `pageSize`: Number of items per page
-  - `totalItems`: Total number of items
+  - `totalCount`: Total number of items
   - `totalPages`: Total number of pages
 - `links`: Links to navigate through the paginated results (optional)
   - `first`: Link to the first page
@@ -163,6 +163,55 @@ The default behavior should depend on the resource and should be documented.
   - `self`: Link to the current page
   - `next`: Link to the next page (if available)
   - `last`: Link to the last page
+
+#### Example: C# model
+
+```cs
+public sealed class PaginationResponse<T>(IEnumerable<T> data, PaginationMetadata metadata, PaginationLinks? links = null)
+{
+    [JsonPropertyName("data")]
+    public IEnumerable<T> Data { get; } = data;
+
+    [JsonPropertyName("metadata")]
+    public PaginationMetadata Metadata { get; } = metadata;
+
+    [JsonPropertyName("links")]
+    public PaginationLinks? Links { get; } = links;
+}
+
+public sealed class PaginationMetadata(int page, int pageSize, int totalCount)
+{
+    [JsonPropertyName("page")]
+    public int Page { get; } = page;
+
+    [JsonPropertyName("pageSize")]
+    public int PageSize { get; } = pageSize;
+
+    [JsonPropertyName("totalCount")]
+    public int TotalCount { get; } = totalCount;
+
+    [JsonPropertyName("totalPages")]
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+}
+
+public sealed class PaginationLinks(string first, string? previous, string self, string? next, string last)
+{
+    [JsonPropertyName("first")]
+    public string First { get; } = first;
+
+    [JsonPropertyName("prev")]
+    public string? Previous { get; } = previous;
+
+    [JsonPropertyName("self")]
+    public string Self { get; } = self;
+
+    [JsonPropertyName("next")]
+    public string? Next { get; } = next;
+
+    [JsonPropertyName("last")]
+    public string Last { get; } = last;
+}
+```
 
 ### Headers
 
