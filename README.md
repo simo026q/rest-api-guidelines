@@ -1,73 +1,95 @@
 # REST Guidelines
 
-**NOTE:** These guidelines are heavily opinionated and may not be suitable for all use cases. Please adapt them to your specific requirements.
+> Note: These guidelines are heavily opinionated and may not suit all use cases. Adapt them to your requirements.
 
-These guidelines are versioned and follow [Semantic Versioning](https://semver.org/). Patch versions may include minor changes and improvements to the language and formatting. Minor versions may include new guidelines or significant changes to existing guidelines. Major versions may include breaking changes or significant changes to the structure of the guidelines.
+## Table of contents
+
+### Versioning strategy
+
+| Version | Description                                                                 |
+|---------|-----------------------------------------------------------------------------|
+| Major   | Breaking changes or significant changes to the structure of the guidelines. |
+| Minor   | New guidelines or significant changes to existing guidelines.               |
+| Patch   | Minor changes and improvements to the language and formatting.              |
 
 ## HTTP Methods
 
 ### Global response codes
 
-- `400 Bad Request`: The request could not be understood by the server due to malformed syntax (often invalid query parameters or request body). Return a [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object with a clear error message.
-- `401 Unauthorized`: The client must authenticate itself to get the requested response. This is usually returned when the `Authorization` header is missing or invalid.
-- `500 Internal Server Error`: Return a [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object. It is recommended to extend the problem detail object with a `traceId` and `requestId` field in this case to help with debugging.
+| Status Code                 | Description                                        | Response                                                                                                                   |
+|-----------------------------|----------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| `400 Bad Request`           | Malformed syntax (e.g., invalid query parameters). | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object with a `errors` extension.                 |
+| `401 Unauthorized`          | Missing or invalid `Authorization` header.         | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object or empty body.                             |
+| `500 Internal Server Error` | Internal server error.                             | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object with `traceId` and `requestId` extensions. |
 
 ### GET
 
-- Use `GET` for fetching resources.
-- `GET` requests should be safe and idempotent.
-- Use appropriate cache headers to optimize performance.
+- **Purpose:** Retrieve resource(s).
+- **Idempotent:** Yes.
+- **Cacheable:** Yes.
 
 #### Response codes
 
-- `200 OK`: Successful response. Returns the resource or a collection of resources.
-- `204 No Content`: Successful response for when the requested collection of resources is empty.
-- `404 Not Found`: Resource not found or user does not have access.
-- `403 Forbidden`: Authenticated user does not have access to this resource. It is recommended to use `404` instead of `403` for `GET` requests to avoid exposing sensitive information.
+| Status Code      | Description                                                  | Response                                                                                       |
+|------------------|--------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| `200 OK`         | Resource(s) found.                                           | Returns the resource or a collection of resources.                                             |
+| `204 No Content` | Empty collection.                                            | Successful response for when the requested collection of resources is empty.                   |
+| `404 Not Found`  | Resource not found.                                          | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object or empty body. |
+| `403 Forbidden`  | Access denied (use `404` to prevent leaking sensitive info). | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object or empty body. |
 
 ### POST
 
-- Use `POST` for creating resources.
-- `POST` requests should not be idempotent.
-- `POST` requests should never be cached.
+- **Purpose:** Create a resource.
+- **Idempotent:** No.
+- **Cacheable:** No.
 
 #### Response codes
 
-- `201 Created`: Resource created successfully. Include a [`Location` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location) with the URL of the new resource.
-- `200 OK` or `204 No Content`: Resource created successfully but the resource cannot be identified by a URI. Use the [`Prefer` header](#prefer-header) to determine the response format.
-- `403 Forbidden`: Authenticated user does not have permission to create the resource.
+| Status Code                  | Description                                                                   | Response                                                                                                                                                                                                             |
+|------------------------------|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `201 Created`                | Resource created successfully.                                                | Returns the resource when the `Prefer` header is `return=representation`. Always include a [`Location` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location) with the URI of the new resource. |
+| `200 OK` or `204 No Content` | Resource created successfully but the resource cannot be identified by a URI. | Use the [`Prefer` header](#prefer-header) to determine the response format.                                                                                                                                          |
+| `403 Forbidden`              | Authenticated user does not have permission to create the resource.           | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object or empty body.                                                                                                                       |
 
 ### PUT
 
-- Use `PUT` for updating resources. The API may choose to create the resource if it does not exist.
-- `PUT` requests should be idempotent.
-- `PUT` requests should not be cached.
+- **Purpose:** Update (or optionally create) a resource.
+- **Idempotent:** Yes.
+- **Cacheable:** No.
 
 #### Response codes
 
-- `200 OK` or `204 No Content`: Resource updated successfully. Use the [`Prefer` header](#prefer-header) to determine the response format.
-- `201 Created`: New resource created successfully.
+| Status Code                  | Description                                                  | Response                                                                                                                                   |
+|------------------------------|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `200 OK` or `204 No Content` | Resource updated successfully.                               | Use the [`Prefer` header](#prefer-header) to determine the response format.                                                                |
+| `201 Created`                | New resource created.                                        | Always include a [`Location` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location) with the URI of the new resource. |
+| `404 Not Found`              | Resource not found.                                          | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object or empty body.                                             |
+| `403 Forbidden`              | Access denied (use `404` to prevent leaking sensitive info). | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object or empty body.                                             |
 
 ### DELETE
 
-- Use `DELETE` for deleting resources.
-- `DELETE` requests should be idempotent.
-- `DELETE` requests should not be cached.
-- Soft delete: Consider soft delete (marking the resource as deleted) instead of hard delete (removing the resource from the database).
+- **Purpose:** Delete a resource.
+- **Idempotent:** Yes.
+- **Cacheable:** No.
+
+> Consideration: Use soft delete (marking the resource as deleted) instead of hard delete (removing the resource from the database).
 
 #### Response codes
 
-- `200 OK` or `204 No Content`: Resource deleted successfully. Use the [`Prefer` header](#prefer-header) to determine the response format.
-- `202 Accepted`: The request has been accepted for processing, but the processing has not been completed.
-- `404 Not Found`: Resource not found or user does not have access.
+| Status Code                  | Description                                                                              | Response                                                                                       |
+|------------------------------|------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| `200 OK` or `204 No Content` | Resource deleted successfully.                                                           | Use the [`Prefer` header](#prefer-header) to determine the response format.                    |
+| `202 Accepted`               | The request has been accepted for processing, but the processing has not been completed. | Empty body.                                                                                    |
+| `404 Not Found`              | Resource not found or user does not have access.                                         | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object or empty body. |
+| `403 Forbidden`              | Access denied (use `404` to prevent leaking sensitive info).                             | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object or empty body. |
 
 ### PATCH
 
-- Use `PATCH` for partial updates to resources.
-- `PATCH` requests should be idempotent.
-- `PATCH` requests should not be cached.
+- **Purpose:** Partial update to a resource.
+- **Idempotent:** Yes.
+- **Cacheable:** No.
 
-#### Request body
+#### Request body example
 
 ```json
 [
@@ -82,17 +104,20 @@ These guidelines are versioned and follow [Semantic Versioning](https://semver.o
 
 #### Response codes
 
-- `200 OK` or `204 No Content`: Resource updated successfully. Use the [`Prefer` header](#prefer-header) to determine the response format.
-- `404 Not Found`: Resource not found or user does not have access.
+| Status Code                  | Description                                                  | Response                                                                                       |
+|------------------------------|--------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| `200 OK` or `204 No Content` | Resource updated successfully.                               | Use the [`Prefer` header](#prefer-header) to determine the response format.                    |
+| `404 Not Found`              | Resource not found or user does not have access.             | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object or empty body. |
+| `403 Forbidden`              | Access denied (use `404` to prevent leaking sensitive info). | [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) problem detail object or empty body. |
 
 ## Query parameters for pagination, filtering and sorting
 
 ### Pagination
 
-- `page` - 1-based page number
-- `pageSize` - number of items per page
-
-Provide default values for `page` and `pageSize` if not specified by the client. The default values should be `page=1` and `pageSize=10` (may vary based on resource).
+| Parameter  | Description               | Default Value   |
+|------------|---------------------------|-----------------|
+| `page`     | Page number (1-based).    | `1`             |
+| `pageSize` | Number of items per page. | `10` suggested. |
 
 ### Filtering
 
