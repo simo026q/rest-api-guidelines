@@ -20,7 +20,8 @@ These guidelines are versioned and follow [Semantic Versioning](https://semver.o
 
 #### Response codes
 
-- `200 OK`: Successful response.
+- `200 OK`: Successful response. Returns the resource or a collection of resources.
+- `204 No Content`: Successful response for when the requested collection of resources is empty.
 - `404 Not Found`: Resource not found or user does not have access.
 - `403 Forbidden`: Authenticated user does not have access to this resource. It is recommended to use `404` instead of `403` for `GET` requests to avoid exposing sensitive information.
 
