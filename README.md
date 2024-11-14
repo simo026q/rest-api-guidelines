@@ -2,6 +2,8 @@
 
 **NOTE:** These guidelines are heavily opinionated and may not be suitable for all use cases. Please adapt them to your specific requirements.
 
+These guidelines are versioned and follow [Semantic Versioning](https://semver.org/). Patch versions may include minor changes and improvements to the language and formatting. Minor versions may include new guidelines or significant changes to existing guidelines. Major versions may include breaking changes or significant changes to the structure of the guidelines.
+
 ## HTTP Methods
 
 ### Global response codes
